@@ -265,3 +265,10 @@ func main() {
 		os.Exit(255)
 	}
 }
+
+/*
+	Additional Features:
+	1. Add Parameters flag to the update-policy which is tobe used as cloudformation parameters.
+	2. Add support for the initial account setup apart from policies
+	3. Add multilevel organizationunit create and update support
+*/
