@@ -22,9 +22,9 @@ func UpdatePolicies(acc []string, gu bool) error {
 	var IamAccId, ProdAccId string
 	for _, ou := range org.OrganizationalUnits {
 		for _, acc := range ou.Accounts {
-			if acc.Alias == "<TBF>" {
+			if acc.Alias == "aqfer-iam" {
 				IamAccId = acc.ID
-			} else if acc.Alias == "TBF" {
+			} else if acc.Alias == "aqfer-prod" {
 				ProdAccId = acc.ID
 			}
 		}
@@ -38,6 +38,7 @@ func UpdatePolicies(acc []string, gu bool) error {
 					orgAccAccessRole := fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", a.ID)
 					rand, _ := uuid.NewRandom()
 					changeSetName := aws.String(fmt.Sprintf("cs-%s", rand.String()))
+					// templateBucket := "akhil-org-test"
 					templateKey := strings.Title(a.Alias) + "-Policies"
 					s3C := getS3Client(profile, orgRole)
 					content, err := ioutil.ReadFile(a.TemplateFile)
@@ -152,7 +153,7 @@ func AddToGroups(input map[string][]string) error {
 	org = readOrgYaml()
 	for _, ou := range org.OrganizationalUnits {
 		for _, acc := range ou.Accounts {
-			if acc.Alias == "TBF" {
+			if acc.Alias == "aqfer-iam" {
 				a = acc
 			}
 		}
@@ -170,6 +171,7 @@ func AddToGroups(input map[string][]string) error {
 			}
 		}
 	}
+	// templateBucket := "akhil-org-test"
 	templateKey := strings.Title(a.Alias) + "-Policies"
 	s3C := getS3Client(profile, orgRole)
 	content, err := ioutil.ReadFile(a.TemplateFile)
@@ -183,6 +185,15 @@ func AddToGroups(input map[string][]string) error {
 	})
 	if err != nil {
 		return fmt.Errorf("ERROR: Failed to upload template file: %v \n", err)
+	}
+	grantee := "emailAddress=" + a.Email
+	_, err = s3C.PutObjectAcl(&s3.PutObjectAclInput{
+		Bucket:    aws.String(templateBucket),
+		Key:       aws.String(templateKey),
+		GrantRead: aws.String(grantee),
+	})
+	if err != nil {
+		return fmt.Errorf("ERROR: Failed to apply ACL to the uploaded template file with: %v", err)
 	}
 	s3URL := fmt.Sprintf("https://%s.s3-%s.amazonaws.com/%s", templateBucket, defaultRegion, templateKey)
 	stackInput := &cfm.UpdateStackInput{
